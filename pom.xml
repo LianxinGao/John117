@@ -12,6 +12,7 @@
     <modules>
         <module>ScalaStudy</module>
         <module>DesignPattern</module>
+        <module>TheoreticalKnowledge</module>
     </modules>
 
     <properties>
