@@ -38,3 +38,22 @@
    1. 原leader独自一个分区，数据永远无法提交成功。
    2. Client切换leader后提交数据成功
    3. 网络分区恢复后，原leader发现有更高级的term，自动降级为follower并从新leader同步数据，达到一致性。
+- - -
+### 线性一致性读
+在分布式系统中实现类似[Java volatile](../Java/Volatile关键字.md)的语义。
+1. ReadIndex Read
+   1. Leader将自己的commitIndex记录到local变量ReadIndex里面。
+   2. 向所有follower发送heart beat（超过半数确认），确认自己是leader后。
+   3. leader等待自己的状态机执行到ReadIndex记录的long，直到applyIndex超过ReadIndex，就能提供线性一致性读，不用管leader是否飘走。
+   4. leader执行read，返回给client。
+2. Follower Read
+   1. follower向leader请求最新的readIndex
+   2. leader走一遍【1】中的前三步（确认自己是leader）然后把readIndex发送给follower
+   3. follower等待自己的状态机applyIndex超过readIndex
+   4. follower执行read，返回给client。
+3. Lease Read（优化ReadIndex Read的heart beat）
+   1. 发生leader选举出现在election timeout的时候，所以leader在一次心态响应后的election timeout时间内会一直是leader，这段时间内可以直接进行读取。
+   2. 流程
+      1. leader heart beat获取多数响应
+      2. 租约有效期内，认为是唯一leader，忽略ReadIndex Read中的第二步心跳检测
+      3. Leader 等待自己的状态机执行，直到 applyIndex 超过 ReadIndex，这样就能够安全的提供线性一致性读。
